@@ -135,8 +135,8 @@ export default function PlanMaestroApp() {
   const [loading, setLoading] = useState(true);
   const [trips, setTrips] = useState([]);
   const [extras, setExtras] = useState([]);
-  const [newTrip, setNewTrip] = useState({ name: "", cost: "" });
-  const [newExtra, setNewExtra] = useState({ name: "", cost: "" });
+  const [newTrip, setNewTrip] = useState({ name: "", cost: "", month: new Date().toISOString().slice(0,7) });
+  const [newExtra, setNewExtra] = useState({ name: "", cost: "", month: new Date().toISOString().slice(0,7) });
   const [showAddTrip, setShowAddTrip] = useState(false);
   const [showAddExtra, setShowAddExtra] = useState(false);
   const [editNote, setEditNote] = useState(null);
@@ -255,7 +255,7 @@ END:VEVENT`;
       {/* Header */}
       <div style={{ background: "linear-gradient(135deg, #1a1a3e 0%, #0a0a1a 100%)", borderBottom: "1px solid #2a2a4a", padding: "16px 20px" }}>
         <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.5 }}>
-          <span style={{ color: "#6366f1" }}>PLAN</span> <span style={{ color: "#f59e0b" }}>MAESTRO</span> <span style={{ fontSize: 13, color: "#666", fontWeight: 400 }}>v10.1</span>
+          <span style={{ color: "#6366f1" }}>PLAN</span> <span style={{ color: "#f59e0b" }}>MAESTRO</span> <span style={{ fontSize: 13, color: "#666", fontWeight: 400 }}>v10.2</span>
         </div>
         <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>Holding Baix Llobregat · 15 años · {completedCount}/{totalMilestones} hitos</div>
       </div>
@@ -639,8 +639,15 @@ END:VEVENT`;
             
             const totalFixed = FIXED.reduce((s, i) => s + i.amount, 0);
             const totalFlex = FLEX.reduce((s, i) => s + i.amount, 0);
-            const totalTrips = trips.reduce((s, i) => s + (parseFloat(i.cost) || 0), 0);
-            const totalExtras = extras.reduce((s, i) => s + (parseFloat(i.cost) || 0), 0);
+            const currentMonth = new Date().toISOString().slice(0,7);
+            const thisMonthTrips = trips.filter(t => t.month === currentMonth);
+            const futureTrips = trips.filter(t => t.month > currentMonth);
+            const totalTrips = thisMonthTrips.reduce((s, i) => s + (parseFloat(i.cost) || 0), 0);
+            const totalFutureTrips = futureTrips.reduce((s, i) => s + (parseFloat(i.cost) || 0), 0);
+            const thisMonthExtras = extras.filter(e => e.month === currentMonth);
+            const futureExtras = extras.filter(e => e.month > currentMonth);
+            const totalExtras = thisMonthExtras.reduce((s, i) => s + (parseFloat(i.cost) || 0), 0);
+            const totalFutureExtras = futureExtras.reduce((s, i) => s + (parseFloat(i.cost) || 0), 0);
             const totalSpend = totalFixed + totalFlex + totalTrips + totalExtras;
             const savings = actualIncome - totalSpend;
             const arreglos = 1100;
@@ -648,10 +655,10 @@ END:VEVENT`;
             
             const addTrip = () => {
               if (!newTrip.name || !newTrip.cost) return;
-              const updated = [...trips, { ...newTrip, id: Date.now() }];
+              const updated = [...trips, { ...newTrip, id: Date.now() }].sort((a,b) => a.month.localeCompare(b.month));
               setTrips(updated);
               localStorage.setItem("plan-trips", JSON.stringify(updated));
-              setNewTrip({ name: "", cost: "" });
+              setNewTrip({ name: "", cost: "", month: new Date().toISOString().slice(0,7) });
               setShowAddTrip(false);
             };
             const removeTrip = (id) => {
@@ -661,10 +668,10 @@ END:VEVENT`;
             };
             const addExtra = () => {
               if (!newExtra.name || !newExtra.cost) return;
-              const updated = [...extras, { ...newExtra, id: Date.now() }];
+              const updated = [...extras, { ...newExtra, id: Date.now() }].sort((a,b) => a.month.localeCompare(b.month));
               setExtras(updated);
               localStorage.setItem("plan-extras", JSON.stringify(updated));
-              setNewExtra({ name: "", cost: "" });
+              setNewExtra({ name: "", cost: "", month: new Date().toISOString().slice(0,7) });
               setShowAddExtra(false);
             };
             const removeExtra = (id) => {
@@ -719,10 +726,11 @@ END:VEVENT`;
               {/* Trips this month */}
               <div style={{ background: "#12122a", borderRadius: 12, padding: 14, marginBottom: 12, border: "1px solid #2a2a4a" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <span style={{ fontSize: 12, color: "#6366f1" }}>✈️ VIAJES ESTE MES — {formatEur(totalTrips)}</span>
-                  <button onClick={() => setShowAddTrip(!showAddTrip)} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, border: "1px solid #6366f133", background: "#6366f111", color: "#6366f1", cursor: "pointer" }}>+ Añadir</button>
+                  <span style={{ fontSize: 12, color: "#6366f1" }}>✈️ VIAJES — Este mes: {formatEur(totalTrips)}</span>
+                  <button onClick={() => setShowAddTrip(!showAddTrip)} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, border: "1px solid #6366f133", background: "#6366f111", color: "#6366f1", cursor: "pointer" }}>+ Planificar</button>
                 </div>
-                {trips.map(t => (
+                {thisMonthTrips.length > 0 && <div style={{ fontSize: 10, color: "#6366f1", marginBottom: 4, fontWeight: 700 }}>ESTE MES</div>}
+                {thisMonthTrips.map(t => (
                   <div key={t.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: "1px solid #1a1a2e", fontSize: 12 }}>
                     <span style={{ color: "#bbb" }}>✈️ {t.name}</span>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -731,11 +739,26 @@ END:VEVENT`;
                     </div>
                   </div>
                 ))}
-                {trips.length === 0 && <div style={{ fontSize: 11, color: "#555", padding: "4px 0" }}>Sin viajes este mes</div>}
+                {futureTrips.length > 0 && <div style={{ fontSize: 10, color: "#888", marginTop: 8, marginBottom: 4, fontWeight: 700 }}>📅 PLANIFICADOS ({formatEur(totalFutureTrips)} total)</div>}
+                {futureTrips.map(t => {
+                  const d = new Date(t.month + "-01");
+                  const label = d.toLocaleDateString("es-ES", { month: "short", year: "numeric" });
+                  return (
+                    <div key={t.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: "1px solid #1a1a2e", fontSize: 12, opacity: 0.7 }}>
+                      <span style={{ color: "#888" }}>✈️ {t.name} <span style={{ fontSize: 9, color: "#555", background: "#1a1a2e", padding: "1px 5px", borderRadius: 4 }}>{label}</span></span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontFamily: "JetBrains Mono", color: "#888" }}>-{parseFloat(t.cost)} €</span>
+                        <button onClick={() => removeTrip(t.id)} style={{ fontSize: 10, color: "#ef4444", background: "transparent", border: "none", cursor: "pointer" }}>✕</button>
+                      </div>
+                    </div>
+                  );
+                })}
+                {trips.length === 0 && <div style={{ fontSize: 11, color: "#555", padding: "4px 0" }}>Sin viajes planificados</div>}
                 {showAddTrip && (
-                  <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                    <input value={newTrip.name} onChange={e => setNewTrip({ ...newTrip, name: e.target.value })} placeholder="Destino" style={{ flex: 2, padding: "6px 8px", borderRadius: 6, border: "1px solid #333", background: "#0a0a1a", color: "#e0e0e0", fontSize: 11 }} />
-                    <input value={newTrip.cost} onChange={e => setNewTrip({ ...newTrip, cost: e.target.value })} placeholder="€" type="number" style={{ flex: 1, padding: "6px 8px", borderRadius: 6, border: "1px solid #333", background: "#0a0a1a", color: "#e0e0e0", fontSize: 11 }} />
+                  <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                    <input value={newTrip.name} onChange={e => setNewTrip({ ...newTrip, name: e.target.value })} placeholder="Destino" style={{ flex: 2, minWidth: 100, padding: "6px 8px", borderRadius: 6, border: "1px solid #333", background: "#0a0a1a", color: "#e0e0e0", fontSize: 11 }} />
+                    <input value={newTrip.cost} onChange={e => setNewTrip({ ...newTrip, cost: e.target.value })} placeholder="€" type="number" style={{ flex: 1, minWidth: 60, padding: "6px 8px", borderRadius: 6, border: "1px solid #333", background: "#0a0a1a", color: "#e0e0e0", fontSize: 11 }} />
+                    <input value={newTrip.month} onChange={e => setNewTrip({ ...newTrip, month: e.target.value })} type="month" style={{ flex: 1, minWidth: 120, padding: "6px 8px", borderRadius: 6, border: "1px solid #333", background: "#0a0a1a", color: "#e0e0e0", fontSize: 11 }} />
                     <button onClick={addTrip} style={{ padding: "6px 10px", borderRadius: 6, background: "#6366f1", color: "#fff", border: "none", fontSize: 11, cursor: "pointer" }}>OK</button>
                   </div>
                 )}
@@ -744,10 +767,11 @@ END:VEVENT`;
               {/* Extraordinary expenses */}
               <div style={{ background: "#12122a", borderRadius: 12, padding: 14, marginBottom: 12, border: "1px solid #2a2a4a" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <span style={{ fontSize: 12, color: "#ec4899" }}>🎪 EXTRAS ESTE MES — {formatEur(totalExtras)}</span>
-                  <button onClick={() => setShowAddExtra(!showAddExtra)} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, border: "1px solid #ec489933", background: "#ec489911", color: "#ec4899", cursor: "pointer" }}>+ Añadir</button>
+                  <span style={{ fontSize: 12, color: "#ec4899" }}>🎪 EXTRAS — Este mes: {formatEur(totalExtras)}</span>
+                  <button onClick={() => setShowAddExtra(!showAddExtra)} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, border: "1px solid #ec489933", background: "#ec489911", color: "#ec4899", cursor: "pointer" }}>+ Planificar</button>
                 </div>
-                {extras.map(e => (
+                {thisMonthExtras.length > 0 && <div style={{ fontSize: 10, color: "#ec4899", marginBottom: 4, fontWeight: 700 }}>ESTE MES</div>}
+                {thisMonthExtras.map(e => (
                   <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: "1px solid #1a1a2e", fontSize: 12 }}>
                     <span style={{ color: "#bbb" }}>🎪 {e.name}</span>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -756,11 +780,26 @@ END:VEVENT`;
                     </div>
                   </div>
                 ))}
-                {extras.length === 0 && <div style={{ fontSize: 11, color: "#555", padding: "4px 0" }}>Sin gastos extra</div>}
+                {futureExtras.length > 0 && <div style={{ fontSize: 10, color: "#888", marginTop: 8, marginBottom: 4, fontWeight: 700 }}>📅 PLANIFICADOS ({formatEur(totalFutureExtras)} total)</div>}
+                {futureExtras.map(e => {
+                  const d = new Date(e.month + "-01");
+                  const label = d.toLocaleDateString("es-ES", { month: "short", year: "numeric" });
+                  return (
+                    <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: "1px solid #1a1a2e", fontSize: 12, opacity: 0.7 }}>
+                      <span style={{ color: "#888" }}>🎪 {e.name} <span style={{ fontSize: 9, color: "#555", background: "#1a1a2e", padding: "1px 5px", borderRadius: 4 }}>{label}</span></span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontFamily: "JetBrains Mono", color: "#888" }}>-{parseFloat(e.cost)} €</span>
+                        <button onClick={() => removeExtra(e.id)} style={{ fontSize: 10, color: "#ef4444", background: "transparent", border: "none", cursor: "pointer" }}>✕</button>
+                      </div>
+                    </div>
+                  );
+                })}
+                {extras.length === 0 && <div style={{ fontSize: 11, color: "#555", padding: "4px 0" }}>Sin gastos extra planificados</div>}
                 {showAddExtra && (
-                  <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                    <input value={newExtra.name} onChange={e => setNewExtra({ ...newExtra, name: e.target.value })} placeholder="Concepto" style={{ flex: 2, padding: "6px 8px", borderRadius: 6, border: "1px solid #333", background: "#0a0a1a", color: "#e0e0e0", fontSize: 11 }} />
-                    <input value={newExtra.cost} onChange={e => setNewExtra({ ...newExtra, cost: e.target.value })} placeholder="€" type="number" style={{ flex: 1, padding: "6px 8px", borderRadius: 6, border: "1px solid #333", background: "#0a0a1a", color: "#e0e0e0", fontSize: 11 }} />
+                  <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                    <input value={newExtra.name} onChange={e => setNewExtra({ ...newExtra, name: e.target.value })} placeholder="Concepto" style={{ flex: 2, minWidth: 100, padding: "6px 8px", borderRadius: 6, border: "1px solid #333", background: "#0a0a1a", color: "#e0e0e0", fontSize: 11 }} />
+                    <input value={newExtra.cost} onChange={e => setNewExtra({ ...newExtra, cost: e.target.value })} placeholder="€" type="number" style={{ flex: 1, minWidth: 60, padding: "6px 8px", borderRadius: 6, border: "1px solid #333", background: "#0a0a1a", color: "#e0e0e0", fontSize: 11 }} />
+                    <input value={newExtra.month} onChange={e => setNewExtra({ ...newExtra, month: e.target.value })} type="month" style={{ flex: 1, minWidth: 120, padding: "6px 8px", borderRadius: 6, border: "1px solid #333", background: "#0a0a1a", color: "#e0e0e0", fontSize: 11 }} />
                     <button onClick={addExtra} style={{ padding: "6px 10px", borderRadius: 6, background: "#ec4899", color: "#fff", border: "none", fontSize: 11, cursor: "pointer" }}>OK</button>
                   </div>
                 )}
