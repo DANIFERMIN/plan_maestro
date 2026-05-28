@@ -133,6 +133,32 @@ export default function PlanMaestroApp() {
   const [notes, setNotes] = useState({});
   const [tab, setTab] = useState("dashboard");
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [lastSync, setLastSync] = useState(null);
+  
+  // Upstash Redis sync
+  const UPSTASH_URL = typeof import.meta !== "undefined" ? import.meta.env?.VITE_UPSTASH_URL : "";
+  const UPSTASH_TOKEN = typeof import.meta !== "undefined" ? import.meta.env?.VITE_UPSTASH_TOKEN : "";
+  const hasUpstash = !!(UPSTASH_URL && UPSTASH_TOKEN);
+  
+  const upstashGet = async (key) => {
+    if (!hasUpstash) return null;
+    try {
+      const res = await fetch(UPSTASH_URL + "/get/" + key, { headers: { Authorization: "Bearer " + UPSTASH_TOKEN } });
+      const data = await res.json();
+      return data.result ? JSON.parse(data.result) : null;
+    } catch { return null; }
+  };
+  
+  const upstashSet = async (key, value) => {
+    if (!hasUpstash) return;
+    try {
+      await fetch(UPSTASH_URL + "/set/" + key, {
+        method: "POST", headers: { Authorization: "Bearer " + UPSTASH_TOKEN, "Content-Type": "application/json" },
+        body: JSON.stringify([key, JSON.stringify(value)])
+      });
+    } catch {}
+  };
   const [trips, setTrips] = useState([]);
   const [extras, setExtras] = useState([]);
   const [newTrip, setNewTrip] = useState({ name: "", cost: "", month: new Date().toISOString().slice(0,7) });
@@ -161,12 +187,14 @@ export default function PlanMaestroApp() {
   const saveCompleted = useCallback((next) => {
     setCompleted(next);
     try { localStorage.setItem("plan-completed", JSON.stringify(next)); } catch {}
+    upstashSet("plan-completed", next);
   }, []);
 
   const saveNote = useCallback((id, text) => {
     const next = { ...notes, [id]: text };
     setNotes(next);
     try { localStorage.setItem("plan-notes", JSON.stringify(next)); } catch {}
+    upstashSet("plan-notes", next);
   }, [notes]);
 
   const toggleComplete = (id) => {
@@ -257,7 +285,7 @@ END:VEVENT`;
         <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.5 }}>
           <span style={{ color: "#6366f1" }}>PLAN</span> <span style={{ color: "#f59e0b" }}>MAESTRO</span> <span style={{ fontSize: 13, color: "#666", fontWeight: 400 }}>v10.2</span>
         </div>
-        <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>Holding Baix Llobregat · 15 años · {completedCount}/{totalMilestones} hitos</div>
+        <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>Holding Baix Llobregat · 15 años · {completedCount}/{totalMilestones} hitos{hasUpstash && lastSync ? ` · ☁️` : ""}</div>
       </div>
 
       {/* Tabs */}
@@ -657,27 +685,27 @@ END:VEVENT`;
               if (!newTrip.name || !newTrip.cost) return;
               const updated = [...trips, { ...newTrip, id: Date.now() }].sort((a,b) => a.month.localeCompare(b.month));
               setTrips(updated);
-              localStorage.setItem("plan-trips", JSON.stringify(updated));
+              localStorage.setItem("plan-trips", JSON.stringify(updated)); upstashSet("plan-trips", updated);
               setNewTrip({ name: "", cost: "", month: new Date().toISOString().slice(0,7) });
               setShowAddTrip(false);
             };
             const removeTrip = (id) => {
               const updated = trips.filter(t => t.id !== id);
               setTrips(updated);
-              localStorage.setItem("plan-trips", JSON.stringify(updated));
+              localStorage.setItem("plan-trips", JSON.stringify(updated)); upstashSet("plan-trips", updated);
             };
             const addExtra = () => {
               if (!newExtra.name || !newExtra.cost) return;
               const updated = [...extras, { ...newExtra, id: Date.now() }].sort((a,b) => a.month.localeCompare(b.month));
               setExtras(updated);
-              localStorage.setItem("plan-extras", JSON.stringify(updated));
+              localStorage.setItem("plan-extras", JSON.stringify(updated)); upstashSet("plan-extras", updated);
               setNewExtra({ name: "", cost: "", month: new Date().toISOString().slice(0,7) });
               setShowAddExtra(false);
             };
             const removeExtra = (id) => {
               const updated = extras.filter(e => e.id !== id);
               setExtras(updated);
-              localStorage.setItem("plan-extras", JSON.stringify(updated));
+              localStorage.setItem("plan-extras", JSON.stringify(updated)); upstashSet("plan-extras", updated);
             };
             
             const flexTotal = totalFlex + totalTrips + totalExtras;
