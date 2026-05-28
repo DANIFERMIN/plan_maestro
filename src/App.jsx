@@ -15,7 +15,7 @@ const MILESTONES = [
   { id: "m10", date: "2027-11-01", label: "Tío en ferretería con Ángel mentor. Visitar inmobiliarias", area: "Negocios", critical: false, phase: 1 },
   { id: "m11", date: "2028-01-15", label: "Paro capitalizado madre → pagar traspaso ferretería", area: "Negocios", critical: true, phase: 1 },
   { id: "m12", date: "2028-06-01", label: "3-4 pisos reformados. Ferretería estabilizada. +5K inversión", area: "Negocios", critical: false, phase: 1 },
-  { id: "m13", date: "2028-09-01", label: "Vender Citigo. Comprar Kia EV2", area: "Personal", critical: false, phase: 1 },
+  { id: "m13", date: "2028-09-01", label: "Vender Citigo. Comprar Hyundai Inster", area: "Personal", critical: false, phase: 1 },
   { id: "m14", date: "2028-12-01", label: "+5K inversión. Capital ~30K. Ferretería break-even", area: "Negocios", critical: true, phase: 1 },
   { id: "m15", date: "2029-12-01", label: "2 negocios 83K combinados. +5K inversión", area: "Negocios", critical: false, phase: 1 },
   { id: "m16", date: "2030-06-01", label: "ABRIR SPECIALTY COFFEE Av. Barcelona", area: "Negocios", critical: true, phase: 2 },
@@ -27,7 +27,12 @@ const MILESTONES = [
   { id: "m22", date: "2034-04-01", label: "REVOLUT PAGADA. +402€/mes libres", area: "Finanzas", critical: true, phase: 4 },
   { id: "m23", date: "2036-04-01", label: "COFIDIS PAGADA. DEUDA CERO", area: "Finanzas", critical: true, phase: 4 },
   { id: "m24", date: "2036-06-01", label: "FIN FARMACIA UB. Colegiarse", area: "Farmacia", critical: true, phase: 4 },
-  { id: "m25", date: "2035-06-01", label: "COMPRAR FARMACIA Baix Llobregat", area: "Farmacia", critical: true, phase: 4 },
+  { id: "m25", date: "2035-06-01", label: "COMPRAR FARMACIA Baix Llobregat (300-400K, financiada 80-90%)", area: "Farmacia", critical: true, phase: 4 },
+  { id: "m26", date: "2036-04-01", label: "COFIDIS PAGADA. DEUDA CERO", area: "Finanzas", critical: true, phase: 4 },
+  { id: "m27", date: "2037-06-01", label: "COMPRAR CASA NUEVA 700K+. Casa actual se alquila 2×1.025€", area: "Personal", critical: true, phase: 4 },
+  { id: "m28", date: "2039-06-01", label: "PROPIEDAD PANAMÁ al contado (130-165K€). San Francisco", area: "Personal", critical: true, phase: 4 },
+  { id: "m29", date: "2040-06-01", label: "PROPIEDAD PORTUGAL (100-150K€). Algarve/Porto", area: "Personal", critical: true, phase: 4 },
+  { id: "m30", date: "2041-05-01", label: "15 AÑOS. 6+ negocios + farmacia + 5 propiedades + Panamá + Portugal", area: "Finanzas", critical: true, phase: 4 },
 ];
 
 const PHASE_NAMES = ["Preparación", "Lanzamiento", "Consolidación", "Expansión", "Farmacia"];
@@ -128,6 +133,12 @@ export default function PlanMaestroApp() {
   const [notes, setNotes] = useState({});
   const [tab, setTab] = useState("dashboard");
   const [loading, setLoading] = useState(true);
+  const [trips, setTrips] = useState([]);
+  const [extras, setExtras] = useState([]);
+  const [newTrip, setNewTrip] = useState({ name: "", cost: "" });
+  const [newExtra, setNewExtra] = useState({ name: "", cost: "" });
+  const [showAddTrip, setShowAddTrip] = useState(false);
+  const [showAddExtra, setShowAddExtra] = useState(false);
   const [editNote, setEditNote] = useState(null);
   const [noteText, setNoteText] = useState("");
   const [calUrl, setCalUrl] = useState("");
@@ -244,20 +255,20 @@ END:VEVENT`;
       {/* Header */}
       <div style={{ background: "linear-gradient(135deg, #1a1a3e 0%, #0a0a1a 100%)", borderBottom: "1px solid #2a2a4a", padding: "16px 20px" }}>
         <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.5 }}>
-          <span style={{ color: "#6366f1" }}>PLAN</span> <span style={{ color: "#f59e0b" }}>MAESTRO</span> <span style={{ fontSize: 13, color: "#666", fontWeight: 400 }}>v9.0</span>
+          <span style={{ color: "#6366f1" }}>PLAN</span> <span style={{ color: "#f59e0b" }}>MAESTRO</span> <span style={{ fontSize: 13, color: "#666", fontWeight: 400 }}>v10.1</span>
         </div>
-        <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>Holding Baix Llobregat · 10 años · {completedCount}/{totalMilestones} hitos</div>
+        <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>Holding Baix Llobregat · 15 años · {completedCount}/{totalMilestones} hitos</div>
       </div>
 
       {/* Tabs */}
       <div style={{ display: "flex", borderBottom: "1px solid #1a1a3e", background: "#0d0d20" }}>
-        {["dashboard", "hitos", "finanzas", "post-hp", "madre", "calendario"].map(t => (
+        {["dashboard", "hitos", "finanzas", "post-hp", "madre", "budget", "calendario"].map(t => (
           <button key={t} onClick={() => setTab(t)} style={{
             flex: 1, padding: "10px 0", background: "transparent", border: "none", color: tab === t ? "#6366f1" : "#666",
             fontSize: 12, fontWeight: tab === t ? 600 : 400, cursor: "pointer", borderBottom: tab === t ? "2px solid #6366f1" : "2px solid transparent",
             fontFamily: "Outfit", textTransform: "uppercase", letterSpacing: 1
           }}>
-            {t === "dashboard" ? "📊" : t === "hitos" ? "🎯" : t === "finanzas" ? "💰" : t === "post-hp" ? "🚀" : t === "madre" ? "👩" : "📅"} {t}
+            {t === "dashboard" ? "📊" : t === "hitos" ? "🎯" : t === "finanzas" ? "💰" : t === "post-hp" ? "🚀" : t === "madre" ? "👩" : t === "budget" ? "💳" : "📅"} {t}
           </button>
         ))}
       </div>
@@ -592,6 +603,242 @@ END:VEVENT`;
               Los 95.000€ quedan reservados permanentemente como su fondo de jubilación.
             </div>
           </div>
+        </>)}
+
+        
+        {/* BUDGET */}
+        {tab === "budget" && (<>
+          {(() => {
+            const FIXED = [
+              { name: "Hipoteca (tu 50%)", amount: 813, essential: true },
+              { name: "Revolut", amount: 402, essential: true },
+              { name: "Cofidis", amount: 285, essential: true },
+              { name: "Servicios", amount: 450, essential: true },
+              { name: "Tomás", amount: 500, essential: true },
+              { name: "Supermercado", amount: 300, essential: true },
+              { name: "Teléfono+suscripciones", amount: 61, essential: false },
+              { name: "Seguros coche/moto", amount: 80, essential: true },
+              { name: "Combustible", amount: 60, essential: false },
+            ];
+            const FLEX = [
+              { name: "Viaje mensual", amount: 500, essential: false },
+              { name: "Cenas fuera", amount: 100, essential: false },
+              { name: "Batucada", amount: 94, essential: false },
+              { name: "Entretenimiento+copas", amount: 55, essential: false },
+            ];
+            const SAVINGS = [
+              { name: "Arreglos casa (tu 50%)", amount: 1100 },
+              { name: "→ Buffer inversión 19%", amount: 0 },
+            ];
+            const income = 3350 + 1000 + 850 + 600; // HP + lav + deuda + madre
+            const incomeHP = 3950; // baja maternidad months
+            const now = new Date();
+            const isBaja = now.getFullYear() === 2026 && (now.getMonth() === 4 || now.getMonth() === 5);
+            const isJulAgo = now.getMonth() === 6 || now.getMonth() === 7;
+            const actualIncome = isBaja ? (incomeHP + 1000 + 850 + 600) : (isJulAgo ? (3350 + 1000 + 600) : income);
+            
+            const totalFixed = FIXED.reduce((s, i) => s + i.amount, 0);
+            const totalFlex = FLEX.reduce((s, i) => s + i.amount, 0);
+            const totalTrips = trips.reduce((s, i) => s + (parseFloat(i.cost) || 0), 0);
+            const totalExtras = extras.reduce((s, i) => s + (parseFloat(i.cost) || 0), 0);
+            const totalSpend = totalFixed + totalFlex + totalTrips + totalExtras;
+            const savings = actualIncome - totalSpend;
+            const arreglos = 1100;
+            const freeBuffer = savings - arreglos;
+            
+            const addTrip = () => {
+              if (!newTrip.name || !newTrip.cost) return;
+              const updated = [...trips, { ...newTrip, id: Date.now() }];
+              setTrips(updated);
+              localStorage.setItem("plan-trips", JSON.stringify(updated));
+              setNewTrip({ name: "", cost: "" });
+              setShowAddTrip(false);
+            };
+            const removeTrip = (id) => {
+              const updated = trips.filter(t => t.id !== id);
+              setTrips(updated);
+              localStorage.setItem("plan-trips", JSON.stringify(updated));
+            };
+            const addExtra = () => {
+              if (!newExtra.name || !newExtra.cost) return;
+              const updated = [...extras, { ...newExtra, id: Date.now() }];
+              setExtras(updated);
+              localStorage.setItem("plan-extras", JSON.stringify(updated));
+              setNewExtra({ name: "", cost: "" });
+              setShowAddExtra(false);
+            };
+            const removeExtra = (id) => {
+              const updated = extras.filter(e => e.id !== id);
+              setExtras(updated);
+              localStorage.setItem("plan-extras", JSON.stringify(updated));
+            };
+            
+            const flexTotal = totalFlex + totalTrips + totalExtras;
+            const maxCut = totalFlex; // max you can cut from non-essentials
+            const needToCut = freeBuffer < 0 ? Math.abs(freeBuffer) : 0;
+            
+            return (<>
+              {/* Income */}
+              <div style={{ background: "#12122a", borderRadius: 12, padding: 16, marginBottom: 12, border: "1px solid #2a2a4a" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <span style={{ fontSize: 12, color: "#888" }}>INGRESOS ESTE MES</span>
+                  <span style={{ fontSize: 20, fontWeight: 700, fontFamily: "JetBrains Mono", color: "#10b981" }}>{formatEur(actualIncome)}</span>
+                </div>
+                <div style={{ fontSize: 10, color: "#666" }}>
+                  {isBaja && "HP baja maternidad 3.950€ · "}
+                  {isJulAgo && "⚠️ Sin cobro deuda jul/ago · "}
+                  HP + Lav + Deuda + Madre
+                </div>
+              </div>
+
+              {/* Fixed expenses */}
+              <div style={{ background: "#12122a", borderRadius: 12, padding: 14, marginBottom: 12, border: "1px solid #2a2a4a" }}>
+                <div style={{ fontSize: 12, color: "#888", marginBottom: 8 }}>GASTOS FIJOS — {formatEur(totalFixed)}</div>
+                {FIXED.map((g, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid #1a1a2e", fontSize: 12 }}>
+                    <span style={{ color: g.essential ? "#e0e0e0" : "#888" }}>{g.essential ? "🔒 " : ""}{g.name}</span>
+                    <span style={{ fontFamily: "JetBrains Mono", color: "#ef4444" }}>-{g.amount} €</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Flexible expenses */}
+              <div style={{ background: "#12122a", borderRadius: 12, padding: 14, marginBottom: 12, border: needToCut > 0 ? "1px solid #f59e0b44" : "1px solid #2a2a4a" }}>
+                <div style={{ fontSize: 12, color: needToCut > 0 ? "#f59e0b" : "#888", marginBottom: 8 }}>
+                  GASTOS FLEXIBLES — {formatEur(totalFlex)}
+                  {needToCut > 0 && ` ⚠️ Recorta ${formatEur(needToCut)} para llegar`}
+                </div>
+                {FLEX.map((g, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid #1a1a2e", fontSize: 12 }}>
+                    <span style={{ color: "#f59e0b" }}>✂️ {g.name}</span>
+                    <span style={{ fontFamily: "JetBrains Mono", color: "#f59e0b" }}>-{g.amount} €</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Trips this month */}
+              <div style={{ background: "#12122a", borderRadius: 12, padding: 14, marginBottom: 12, border: "1px solid #2a2a4a" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <span style={{ fontSize: 12, color: "#6366f1" }}>✈️ VIAJES ESTE MES — {formatEur(totalTrips)}</span>
+                  <button onClick={() => setShowAddTrip(!showAddTrip)} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, border: "1px solid #6366f133", background: "#6366f111", color: "#6366f1", cursor: "pointer" }}>+ Añadir</button>
+                </div>
+                {trips.map(t => (
+                  <div key={t.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: "1px solid #1a1a2e", fontSize: 12 }}>
+                    <span style={{ color: "#bbb" }}>✈️ {t.name}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontFamily: "JetBrains Mono", color: "#6366f1" }}>-{parseFloat(t.cost)} €</span>
+                      <button onClick={() => removeTrip(t.id)} style={{ fontSize: 10, color: "#ef4444", background: "transparent", border: "none", cursor: "pointer" }}>✕</button>
+                    </div>
+                  </div>
+                ))}
+                {trips.length === 0 && <div style={{ fontSize: 11, color: "#555", padding: "4px 0" }}>Sin viajes este mes</div>}
+                {showAddTrip && (
+                  <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                    <input value={newTrip.name} onChange={e => setNewTrip({ ...newTrip, name: e.target.value })} placeholder="Destino" style={{ flex: 2, padding: "6px 8px", borderRadius: 6, border: "1px solid #333", background: "#0a0a1a", color: "#e0e0e0", fontSize: 11 }} />
+                    <input value={newTrip.cost} onChange={e => setNewTrip({ ...newTrip, cost: e.target.value })} placeholder="€" type="number" style={{ flex: 1, padding: "6px 8px", borderRadius: 6, border: "1px solid #333", background: "#0a0a1a", color: "#e0e0e0", fontSize: 11 }} />
+                    <button onClick={addTrip} style={{ padding: "6px 10px", borderRadius: 6, background: "#6366f1", color: "#fff", border: "none", fontSize: 11, cursor: "pointer" }}>OK</button>
+                  </div>
+                )}
+              </div>
+
+              {/* Extraordinary expenses */}
+              <div style={{ background: "#12122a", borderRadius: 12, padding: 14, marginBottom: 12, border: "1px solid #2a2a4a" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <span style={{ fontSize: 12, color: "#ec4899" }}>🎪 EXTRAS ESTE MES — {formatEur(totalExtras)}</span>
+                  <button onClick={() => setShowAddExtra(!showAddExtra)} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, border: "1px solid #ec489933", background: "#ec489911", color: "#ec4899", cursor: "pointer" }}>+ Añadir</button>
+                </div>
+                {extras.map(e => (
+                  <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: "1px solid #1a1a2e", fontSize: 12 }}>
+                    <span style={{ color: "#bbb" }}>🎪 {e.name}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontFamily: "JetBrains Mono", color: "#ec4899" }}>-{parseFloat(e.cost)} €</span>
+                      <button onClick={() => removeExtra(e.id)} style={{ fontSize: 10, color: "#ef4444", background: "transparent", border: "none", cursor: "pointer" }}>✕</button>
+                    </div>
+                  </div>
+                ))}
+                {extras.length === 0 && <div style={{ fontSize: 11, color: "#555", padding: "4px 0" }}>Sin gastos extra</div>}
+                {showAddExtra && (
+                  <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                    <input value={newExtra.name} onChange={e => setNewExtra({ ...newExtra, name: e.target.value })} placeholder="Concepto" style={{ flex: 2, padding: "6px 8px", borderRadius: 6, border: "1px solid #333", background: "#0a0a1a", color: "#e0e0e0", fontSize: 11 }} />
+                    <input value={newExtra.cost} onChange={e => setNewExtra({ ...newExtra, cost: e.target.value })} placeholder="€" type="number" style={{ flex: 1, padding: "6px 8px", borderRadius: 6, border: "1px solid #333", background: "#0a0a1a", color: "#e0e0e0", fontSize: 11 }} />
+                    <button onClick={addExtra} style={{ padding: "6px 10px", borderRadius: 6, background: "#ec4899", color: "#fff", border: "none", fontSize: 11, cursor: "pointer" }}>OK</button>
+                  </div>
+                )}
+              </div>
+
+              {/* Summary */}
+              <div style={{ background: freeBuffer >= 0 ? "#0a1a0a" : "#1a0a0a", borderRadius: 12, padding: 16, border: `1px solid ${freeBuffer >= 0 ? "#10b98133" : "#ef444433"}` }}>
+                <div style={{ fontSize: 12, color: "#888", marginBottom: 8 }}>RESUMEN DEL MES</div>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 12 }}>
+                  <span style={{ color: "#10b981" }}>Ingresos</span>
+                  <span style={{ fontFamily: "JetBrains Mono", color: "#10b981" }}>+{formatEur(actualIncome)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 12 }}>
+                  <span style={{ color: "#ef4444" }}>Gastos fijos</span>
+                  <span style={{ fontFamily: "JetBrains Mono", color: "#ef4444" }}>-{formatEur(totalFixed)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 12 }}>
+                  <span style={{ color: "#f59e0b" }}>Gastos flexibles</span>
+                  <span style={{ fontFamily: "JetBrains Mono", color: "#f59e0b" }}>-{formatEur(totalFlex)}</span>
+                </div>
+                {totalTrips > 0 && <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 12 }}>
+                  <span style={{ color: "#6366f1" }}>Viajes</span>
+                  <span style={{ fontFamily: "JetBrains Mono", color: "#6366f1" }}>-{formatEur(totalTrips)}</span>
+                </div>}
+                {totalExtras > 0 && <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 12 }}>
+                  <span style={{ color: "#ec4899" }}>Extras</span>
+                  <span style={{ fontFamily: "JetBrains Mono", color: "#ec4899" }}>-{formatEur(totalExtras)}</span>
+                </div>}
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 12, borderTop: "1px solid #333", marginTop: 4 }}>
+                  <span style={{ color: "#888" }}>Arreglos casa (1.100€)</span>
+                  <span style={{ fontFamily: "JetBrains Mono", color: "#888" }}>-{formatEur(arreglos)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0 0", fontSize: 14, fontWeight: 700 }}>
+                  <span style={{ color: freeBuffer >= 0 ? "#10b981" : "#ef4444" }}>→ Buffer inversión 19%</span>
+                  <span style={{ fontFamily: "JetBrains Mono", color: freeBuffer >= 0 ? "#10b981" : "#ef4444", fontSize: 18 }}>{freeBuffer >= 0 ? "+" : ""}{formatEur(freeBuffer)}</span>
+                </div>
+                {freeBuffer < 0 && (
+                  <div style={{ marginTop: 8, padding: 10, background: "#ef444411", borderRadius: 8, fontSize: 11, color: "#ef4444" }}>
+                    ⚠️ Este mes no llegas. Recorta {formatEur(Math.abs(freeBuffer))} de gastos flexibles (viaje, cenas, ocio) para mantener el plan on track.
+                  </div>
+                )}
+                {freeBuffer >= 0 && freeBuffer < 500 && (
+                  <div style={{ marginTop: 8, padding: 10, background: "#f59e0b11", borderRadius: 8, fontSize: 11, color: "#f59e0b" }}>
+                    ⚠️ Margen ajustado. Cualquier gasto extra este mes compromete el ahorro.
+                  </div>
+                )}
+                {freeBuffer >= 500 && (
+                  <div style={{ marginTop: 8, padding: 10, background: "#10b98111", borderRadius: 8, fontSize: 11, color: "#10b981" }}>
+                    ✅ Buen mes. {formatEur(freeBuffer)} va al buffer. {freeBuffer >= 5000 ? "¡Puedes depositar 5K a la inversión 19%!" : `Faltan ${formatEur(5000 - freeBuffer)} para el próximo depósito 5K.`}
+                  </div>
+                )}
+              </div>
+
+              {/* Inflation projection */}
+              <div style={{ background: "#12122a", borderRadius: 12, padding: 14, marginTop: 12, border: "1px solid #2a2a4a" }}>
+                <div style={{ fontSize: 12, color: "#f59e0b", marginBottom: 8 }}>📈 PROYECCIÓN CON INFLACIÓN (2.5%/año)</div>
+                {[
+                  { year: 2026, gastos: 3700, empleada: 0, total: 3700 },
+                  { year: 2028, gastos: 3807, empleada: 0, total: 3807 },
+                  { year: 2029, gastos: 3863, empleada: 0, total: 3863 },
+                  { year: 2031, gastos: 3979, empleada: 1251, total: 5230 },
+                  { year: 2034, gastos: 3761, empleada: 1347, total: 5108 },
+                  { year: 2036, gastos: 3607, empleada: 1415, total: 5022 },
+                  { year: 2041, gastos: 3963, empleada: 1601, total: 5564 },
+                ].map((y, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px solid #1a1a2e", fontSize: 11 }}>
+                    <span style={{ color: "#bbb" }}>{y.year}</span>
+                    <span style={{ color: "#888" }}>Gastos {formatEur(y.gastos)}{y.empleada > 0 ? ` + empleada ${formatEur(y.empleada)}` : ""}</span>
+                    <span style={{ fontFamily: "JetBrains Mono", color: "#f59e0b" }}>{formatEur(y.total)}</span>
+                  </div>
+                ))}
+                <div style={{ fontSize: 10, color: "#666", marginTop: 6 }}>
+                  Fijos (hipoteca, préstamos) NO suben. Revolut pagada abr 2034 (-402€). Cofidis abr 2036 (-285€). Empleada hogar desde 2031 (tu 3/4 = ~1.251€/mes).
+                </div>
+              </div>
+
+            </>);
+          })()}
         </>)}
 
         {/* CALENDARIO */}
