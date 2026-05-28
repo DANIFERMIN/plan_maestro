@@ -699,7 +699,7 @@ END:VEVENT`;
             
             const addTrip = () => {
               if (!newTrip.name || !newTrip.cost) return;
-              const updated = [...trips, { ...newTrip, id: Date.now() }].sort((a,b) => a.month.localeCompare(b.month));
+              const updated = [...trips, { ...newTrip, id: Date.now() }].sort((a,b) => (a.month||'').localeCompare(b.month||''));
               setTrips(updated);
               localStorage.setItem("plan-trips", JSON.stringify(updated)); upstashSet("plan-trips", updated);
               setNewTrip({ name: "", cost: "", month: new Date().toISOString().slice(0,7) });
@@ -712,7 +712,7 @@ END:VEVENT`;
             };
             const addExtra = () => {
               if (!newExtra.name || !newExtra.cost) return;
-              const updated = [...extras, { ...newExtra, id: Date.now() }].sort((a,b) => a.month.localeCompare(b.month));
+              const updated = [...extras, { ...newExtra, id: Date.now() }].sort((a,b) => (a.month||'').localeCompare(b.month||''));
               setExtras(updated);
               localStorage.setItem("plan-extras", JSON.stringify(updated)); upstashSet("plan-extras", updated);
               setNewExtra({ name: "", cost: "", month: new Date().toISOString().slice(0,7) });
