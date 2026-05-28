@@ -160,6 +160,7 @@ export default function PlanMaestroApp() {
     } catch {}
   };
   const [trips, setTrips] = useState([]);
+  const [travelSaved, setTravelSaved] = useState(1000);
   const [extras, setExtras] = useState([]);
   const [newTrip, setNewTrip] = useState({ name: "", cost: "", month: new Date().toISOString().slice(0,7) });
   const [newExtra, setNewExtra] = useState({ name: "", cost: "", month: new Date().toISOString().slice(0,7) });
@@ -642,14 +643,14 @@ END:VEVENT`;
               { name: "Revolut", amount: 402, essential: true },
               { name: "Cofidis", amount: 285, essential: true },
               { name: "Servicios", amount: 450, essential: true },
-              { name: "Tomás", amount: 500, essential: true },
+              { name: "Tomás", amount: now.getMonth() >= 8 || now.getFullYear() > 2026 ? 500 : 0, essential: true, note: now.getMonth() < 8 && now.getFullYear() === 2026 ? "(desde sept)" : "" },
               { name: "Supermercado", amount: 300, essential: true },
               { name: "Teléfono+suscripciones", amount: 61, essential: false },
               { name: "Seguros coche/moto", amount: 80, essential: true },
               { name: "Combustible", amount: 60, essential: false },
             ];
             const FLEX = [
-              { name: "Viaje mensual", amount: 500, essential: false },
+              
               { name: "Cenas fuera", amount: 100, essential: false },
               { name: "Batucada", amount: 94, essential: false },
               { name: "Entretenimiento+copas", amount: 55, essential: false },
@@ -676,8 +677,10 @@ END:VEVENT`;
             const futureExtras = extras.filter(e => e.month > currentMonth);
             const totalExtras = thisMonthExtras.reduce((s, i) => s + (parseFloat(i.cost) || 0), 0);
             const totalFutureExtras = futureExtras.reduce((s, i) => s + (parseFloat(i.cost) || 0), 0);
-            const totalSpend = totalFixed + totalFlex + totalTrips + totalExtras;
+            const totalSpend = totalFixed + totalFlex + 500 + totalExtras;
             const savings = actualIncome - totalSpend;
+            // Tomás note
+            const tomasNote = FIXED.find(g => g.note)?.note || "";
             const arreglos = 1100;
             const freeBuffer = savings - arreglos;
             
@@ -848,10 +851,10 @@ END:VEVENT`;
                   <span style={{ color: "#f59e0b" }}>Gastos flexibles</span>
                   <span style={{ fontFamily: "JetBrains Mono", color: "#f59e0b" }}>-{formatEur(totalFlex)}</span>
                 </div>
-                {totalTrips > 0 && <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 12 }}>
-                  <span style={{ color: "#6366f1" }}>Viajes</span>
-                  <span style={{ fontFamily: "JetBrains Mono", color: "#6366f1" }}>-{formatEur(totalTrips)}</span>
-                </div>}
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 12 }}>
+                  <span style={{ color: "#6366f1" }}>Fondo viajes (500€/mes)</span>
+                  <span style={{ fontFamily: "JetBrains Mono", color: "#6366f1" }}>-{formatEur(500)}</span>
+                </div>
                 {totalExtras > 0 && <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 12 }}>
                   <span style={{ color: "#ec4899" }}>Extras</span>
                   <span style={{ fontFamily: "JetBrains Mono", color: "#ec4899" }}>-{formatEur(totalExtras)}</span>
@@ -885,7 +888,35 @@ END:VEVENT`;
               {/* Yearly month-by-month overview */}
               <div style={{ background: "#12122a", borderRadius: 12, padding: 14, marginTop: 12, border: "1px solid #6366f133" }}>
                 <div style={{ fontSize: 12, color: "#6366f1", marginBottom: 10, fontWeight: 700 }}>📅 PRESUPUESTO MES A MES — Resto del año</div>
-                <div style={{ fontSize: 10, color: "#666", marginBottom: 8 }}>Con todos los viajes y extras planificados. Te muestra dónde recortar.</div>
+                <div style={{ fontSize: 10, color: "#666", marginBottom: 8 }}>Fondo viajes: 500€/mes asignados. Los meses sin viaje compensan los meses con viaje.</div>
+                
+                {/* Annual travel budget bar */}
+                {(() => {
+                  const monthsLeft = 12 - now.getMonth();
+                  const annualTravelBudget = travelSaved + (500 * monthsLeft);
+                  const totalPlannedTrips = trips.reduce((s,t) => s + (parseFloat(t.cost)||0), 0);
+                  const travelBalance = annualTravelBudget - totalPlannedTrips;
+                  const pct = Math.min(100, (totalPlannedTrips / annualTravelBudget) * 100);
+                  return (
+                    <div style={{ background: "#0a0a2a", borderRadius: 8, padding: 10, marginBottom: 12, border: "1px solid #2a2a4a" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 4 }}>
+                        <span style={{ color: "#6366f1" }}>✈️ Fondo viajes anual</span>
+                        <span style={{ fontFamily: "JetBrains Mono", color: travelBalance >= 0 ? "#10b981" : "#ef4444" }}>
+                          {formatEur(totalPlannedTrips)} / {formatEur(annualTravelBudget)}
+                        </span>
+                      </div>
+                      <div style={{ width: "100%", background: "#1a1a2e", borderRadius: 4, height: 8, overflow: "hidden" }}>
+                        <div style={{ width: pct + "%", background: pct > 90 ? "#ef4444" : pct > 70 ? "#f59e0b" : "#6366f1", height: "100%", borderRadius: 4, transition: "width 0.3s" }} />
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, marginTop: 4 }}>
+                        <span style={{ color: "#666" }}>Ya ahorrado: {formatEur(travelSaved)} + 500€/mes × {monthsLeft} meses</span>
+                        <span style={{ color: travelBalance >= 0 ? "#10b981" : "#ef4444", fontWeight: 700 }}>
+                          {travelBalance >= 0 ? "Sobran " + formatEur(travelBalance) : "Faltan " + formatEur(Math.abs(travelBalance))}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
                 {(() => {
                   const now = new Date();
                   const months = [];
@@ -900,7 +931,8 @@ END:VEVENT`;
                     
                     const isJulAgo = m === 6 || m === 7;
                     const mIncome = isJulAgo ? (3350 + 1000 + 600) : actualIncome;
-                    const mSavings = mIncome - totalFixed - totalFlex - mTripsTotal - mExtrasTotal - arreglos;
+                    const monthlyTravelAlloc = 500; // 500€/month allocated to travel fund
+                    const mSavings = mIncome - totalFixed - totalFlex - mExtrasTotal - arreglos - monthlyTravelAlloc;
                     
                     months.push({ key, label, mTrips, mExtras, mTripsTotal, mExtrasTotal, mIncome, mSavings });
                   }
@@ -920,13 +952,15 @@ END:VEVENT`;
                     
                     const isJulAgo = m === 6 || m === 7;
                     const mIncome = isJulAgo ? (3350 + 1000 + 600) : actualIncome;
-                    const mSavings = mIncome - totalFixed - totalFlex - mTripsTotal - mExtrasTotal - arreglos;
+                    const monthlyTravelAlloc = 500; // 500€/month allocated to travel fund
+                    const mSavings = mIncome - totalFixed - totalFlex - mExtrasTotal - arreglos - monthlyTravelAlloc;
                     
                     months.push({ key, label, mTrips, mExtras, mTripsTotal, mExtrasTotal, mIncome, mSavings });
                   }
                   
                   return months.map((mo, i) => {
                     const hasPlans = mo.mTrips.length > 0 || mo.mExtras.length > 0;
+                    const monthTripsCost = mo.mTripsTotal;
                     const isNeg = mo.mSavings < 0;
                     const isTight = mo.mSavings >= 0 && mo.mSavings < 500;
                     const needCut = isNeg ? Math.abs(mo.mSavings) : 0;
@@ -1000,18 +1034,23 @@ END:VEVENT`;
                 {(() => {
                   const now = new Date();
                   const yearTrips = trips.reduce((s,t) => s + (parseFloat(t.cost)||0), 0);
+                  const monthsRemaining = 12 - now.getMonth();
+                  const travelBudgetTotal = travelSaved + (500 * monthsRemaining);
+                  const travelRemaining = travelBudgetTotal - yearTrips;
                   const yearExtras = extras.reduce((s,e) => s + (parseFloat(e.cost)||0), 0);
                   const monthsLeft = 12 - now.getMonth();
                   const avgMonthlyIncome = actualIncome;
-                  const yearSavings = (avgMonthlyIncome * monthsLeft) - (totalFixed * monthsLeft) - (totalFlex * monthsLeft) - yearTrips - yearExtras - (arreglos * monthsLeft);
+                  const yearSavings = (avgMonthlyIncome * monthsRemaining) - (totalFixed * monthsRemaining) - (totalFlex * monthsRemaining) - (500 * monthsRemaining) - yearExtras - (arreglos * monthsRemaining);
                   
                   return (
                     <div style={{ marginTop: 12, padding: 10, background: "#0a0a2a", borderRadius: 8, border: "1px solid #2a2a4a" }}>
                       <div style={{ fontSize: 11, color: "#888", marginBottom: 4 }}>RESUMEN AÑO</div>
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "2px 0" }}>
-                        <span style={{ color: "#6366f1" }}>Total viajes planificados</span>
-                        <span style={{ fontFamily: "JetBrains Mono", color: "#6366f1" }}>{formatEur(yearTrips)}</span>
+                        <span style={{ color: "#6366f1" }}>Viajes planificados / Fondo anual</span>
+                        <span style={{ fontFamily: "JetBrains Mono", color: travelRemaining >= 0 ? "#6366f1" : "#ef4444" }}>{formatEur(yearTrips)} / {formatEur(travelBudgetTotal)}</span>
                       </div>
+                      {travelRemaining < 0 && <div style={{ fontSize: 10, color: "#ef4444", padding: "2px 0" }}>⚠️ Viajes exceden fondo por {formatEur(Math.abs(travelRemaining))} — reduce viajes o recorta otros gastos</div>}
+                      {travelRemaining >= 0 && <div style={{ fontSize: 10, color: "#10b981", padding: "2px 0" }}>✅ Fondo viajes cubre todo. Sobran {formatEur(travelRemaining)}</div>}
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "2px 0" }}>
                         <span style={{ color: "#ec4899" }}>Total extras planificados</span>
                         <span style={{ fontFamily: "JetBrains Mono", color: "#ec4899" }}>{formatEur(yearExtras)}</span>
