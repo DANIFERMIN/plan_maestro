@@ -853,6 +853,155 @@ END:VEVENT`;
                 )}
               </div>
 
+              
+              {/* Yearly month-by-month overview */}
+              <div style={{ background: "#12122a", borderRadius: 12, padding: 14, marginTop: 12, border: "1px solid #6366f133" }}>
+                <div style={{ fontSize: 12, color: "#6366f1", marginBottom: 10, fontWeight: 700 }}>📅 PRESUPUESTO MES A MES — Resto del año</div>
+                <div style={{ fontSize: 10, color: "#666", marginBottom: 8 }}>Con todos los viajes y extras planificados. Te muestra dónde recortar.</div>
+                {(() => {
+                  const now = new Date();
+                  const months = [];
+                  for (let m = now.getMonth(); m < 12; m++) {
+                    const key = now.getFullYear() + "-" + String(m+1).padStart(2,"0");
+                    const label = new Date(now.getFullYear(), m, 1).toLocaleDateString("es-ES", { month: "long" });
+                    
+                    const mTrips = trips.filter(t => t.month === key);
+                    const mExtras = extras.filter(e => e.month === key);
+                    const mTripsTotal = mTrips.reduce((s,t) => s + (parseFloat(t.cost)||0), 0);
+                    const mExtrasTotal = mExtras.reduce((s,e) => s + (parseFloat(e.cost)||0), 0);
+                    
+                    const isJulAgo = m === 6 || m === 7;
+                    const mIncome = isJulAgo ? (3350 + 1000 + 600) : actualIncome;
+                    const mSavings = mIncome - totalFixed - totalFlex - mTripsTotal - mExtrasTotal - arreglos;
+                    
+                    months.push({ key, label, mTrips, mExtras, mTripsTotal, mExtrasTotal, mIncome, mSavings });
+                  }
+                  
+                  // Also check next year if there are planned items
+                  const nextYear = now.getFullYear() + 1;
+                  for (let m = 0; m < 12; m++) {
+                    const key = nextYear + "-" + String(m+1).padStart(2,"0");
+                    const hasItems = trips.some(t => t.month === key) || extras.some(e => e.month === key);
+                    if (!hasItems) continue;
+                    
+                    const label = new Date(nextYear, m, 1).toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+                    const mTrips = trips.filter(t => t.month === key);
+                    const mExtras = extras.filter(e => e.month === key);
+                    const mTripsTotal = mTrips.reduce((s,t) => s + (parseFloat(t.cost)||0), 0);
+                    const mExtrasTotal = mExtras.reduce((s,e) => s + (parseFloat(e.cost)||0), 0);
+                    
+                    const isJulAgo = m === 6 || m === 7;
+                    const mIncome = isJulAgo ? (3350 + 1000 + 600) : actualIncome;
+                    const mSavings = mIncome - totalFixed - totalFlex - mTripsTotal - mExtrasTotal - arreglos;
+                    
+                    months.push({ key, label, mTrips, mExtras, mTripsTotal, mExtrasTotal, mIncome, mSavings });
+                  }
+                  
+                  return months.map((mo, i) => {
+                    const hasPlans = mo.mTrips.length > 0 || mo.mExtras.length > 0;
+                    const isNeg = mo.mSavings < 0;
+                    const isTight = mo.mSavings >= 0 && mo.mSavings < 500;
+                    const needCut = isNeg ? Math.abs(mo.mSavings) : 0;
+                    
+                    // Calculate what to cut from flex
+                    const flexItems = [
+                      { name: "Viaje mensual", amount: 500 },
+                      { name: "Cenas fuera", amount: 100 },
+                      { name: "Batucada", amount: 94 },
+                      { name: "Ocio+copas", amount: 55 },
+                    ];
+                    let remaining = needCut;
+                    const cuts = [];
+                    if (remaining > 0) {
+                      for (const f of flexItems) {
+                        if (remaining <= 0) break;
+                        const cut = Math.min(f.amount, remaining);
+                        if (cut > 0) cuts.push({ name: f.name, cut, full: cut === f.amount });
+                        remaining -= cut;
+                      }
+                    }
+                    
+                    return (
+                      <div key={mo.key} style={{ 
+                        padding: "10px 0", 
+                        borderBottom: i < months.length - 1 ? "1px solid #1a1a2e" : "none",
+                      }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <div>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: "#e0e0e0", textTransform: "capitalize" }}>{mo.label}</span>
+                            {hasPlans && (
+                              <div style={{ fontSize: 10, color: "#888", marginTop: 2 }}>
+                                {mo.mTrips.map(t => <span key={t.id} style={{ color: "#6366f1", marginRight: 6 }}>✈️{t.name} -{t.cost}€</span>)}
+                                {mo.mExtras.map(e => <span key={e.id} style={{ color: "#ec4899", marginRight: 6 }}>🎪{e.name} -{e.cost}€</span>)}
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ textAlign: "right" }}>
+                            <div style={{ 
+                              fontFamily: "JetBrains Mono", fontSize: 13, fontWeight: 700,
+                              color: isNeg ? "#ef4444" : isTight ? "#f59e0b" : "#10b981" 
+                            }}>
+                              {mo.mSavings >= 0 ? "+" : ""}{formatEur(mo.mSavings)}
+                            </div>
+                            {!hasPlans && <div style={{ fontSize: 9, color: "#555" }}>sin extras</div>}
+                          </div>
+                        </div>
+                        
+                        {isNeg && cuts.length > 0 && (
+                          <div style={{ marginTop: 6, padding: "6px 8px", background: "#ef444411", borderRadius: 6, fontSize: 10 }}>
+                            <span style={{ color: "#ef4444", fontWeight: 700 }}>✂️ Recorta {formatEur(needCut)}: </span>
+                            {cuts.map((c, ci) => (
+                              <span key={ci} style={{ color: "#f59e0b" }}>
+                                {c.full ? "elimina" : "reduce"} {c.name} (-{c.cut}€){ci < cuts.length - 1 ? " + " : ""}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {isTight && (
+                          <div style={{ marginTop: 4, fontSize: 9, color: "#f59e0b" }}>
+                            ⚠️ Margen ajustado — evita gastos imprevistos
+                          </div>
+                        )}
+                      </div>
+                    );
+                  });
+                })()}
+                
+                {/* Year summary */}
+                {(() => {
+                  const now = new Date();
+                  const yearTrips = trips.reduce((s,t) => s + (parseFloat(t.cost)||0), 0);
+                  const yearExtras = extras.reduce((s,e) => s + (parseFloat(e.cost)||0), 0);
+                  const monthsLeft = 12 - now.getMonth();
+                  const avgMonthlyIncome = actualIncome;
+                  const yearSavings = (avgMonthlyIncome * monthsLeft) - (totalFixed * monthsLeft) - (totalFlex * monthsLeft) - yearTrips - yearExtras - (arreglos * monthsLeft);
+                  
+                  return (
+                    <div style={{ marginTop: 12, padding: 10, background: "#0a0a2a", borderRadius: 8, border: "1px solid #2a2a4a" }}>
+                      <div style={{ fontSize: 11, color: "#888", marginBottom: 4 }}>RESUMEN AÑO</div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "2px 0" }}>
+                        <span style={{ color: "#6366f1" }}>Total viajes planificados</span>
+                        <span style={{ fontFamily: "JetBrains Mono", color: "#6366f1" }}>{formatEur(yearTrips)}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "2px 0" }}>
+                        <span style={{ color: "#ec4899" }}>Total extras planificados</span>
+                        <span style={{ fontFamily: "JetBrains Mono", color: "#ec4899" }}>{formatEur(yearExtras)}</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "4px 0", borderTop: "1px solid #2a2a4a", marginTop: 4, fontWeight: 700 }}>
+                        <span style={{ color: yearSavings >= 0 ? "#10b981" : "#ef4444" }}>Ahorro proyectado resto año</span>
+                        <span style={{ fontFamily: "JetBrains Mono", color: yearSavings >= 0 ? "#10b981" : "#ef4444" }}>{yearSavings >= 0 ? "+" : ""}{formatEur(yearSavings)}</span>
+                      </div>
+                      {yearSavings >= 5000 && (
+                        <div style={{ fontSize: 10, color: "#10b981", marginTop: 4 }}>
+                          ✅ Puedes hacer {Math.floor(yearSavings/5000)} depósito{Math.floor(yearSavings/5000) > 1 ? "s" : ""} de 5K a la inversión 19% este año
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+
               {/* Inflation projection */}
               <div style={{ background: "#12122a", borderRadius: 12, padding: 14, marginTop: 12, border: "1px solid #2a2a4a" }}>
                 <div style={{ fontSize: 12, color: "#f59e0b", marginBottom: 8 }}>📈 PROYECCIÓN CON INFLACIÓN (2.5%/año)</div>
