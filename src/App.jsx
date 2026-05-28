@@ -174,14 +174,27 @@ export default function PlanMaestroApp() {
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
-    try {
-      const c = localStorage.getItem("plan-completed");
-      if (c) setCompleted(JSON.parse(c));
-    } catch {}
-    try {
-      const n = localStorage.getItem("plan-notes");
-      if (n) setNotes(JSON.parse(n));
-    } catch {}
+    // Load all data from localStorage
+    try { const c = localStorage.getItem("plan-completed"); if (c) setCompleted(JSON.parse(c)); } catch {}
+    try { const n = localStorage.getItem("plan-notes"); if (n) setNotes(JSON.parse(n)); } catch {}
+    try { const t = localStorage.getItem("plan-trips"); if (t) setTrips(JSON.parse(t)); } catch {}
+    try { const e = localStorage.getItem("plan-extras"); if (e) setExtras(JSON.parse(e)); } catch {}
+    try { const ts = localStorage.getItem("plan-travel-saved"); if (ts) setTravelSaved(JSON.parse(ts)); } catch {}
+    // Try Upstash cloud sync
+    if (hasUpstash) {
+      Promise.all([
+        upstashGet("plan-completed"),
+        upstashGet("plan-trips"),
+        upstashGet("plan-extras"),
+        upstashGet("plan-notes"),
+      ]).then(([c, t, e, n]) => {
+        if (c) { setCompleted(c); localStorage.setItem("plan-completed", JSON.stringify(c)); }
+        if (t) { setTrips(t); localStorage.setItem("plan-trips", JSON.stringify(t)); }
+        if (e) { setExtras(e); localStorage.setItem("plan-extras", JSON.stringify(e)); }
+        if (n) { setNotes(n); localStorage.setItem("plan-notes", JSON.stringify(n)); }
+        setLastSync(new Date().toLocaleTimeString());
+      }).catch(() => {});
+    }
     setLoading(false);
   }, []);
 
@@ -638,6 +651,7 @@ END:VEVENT`;
         {/* BUDGET */}
         {tab === "budget" && (<>
           {(() => {
+            const now = new Date();
             const FIXED = [
               { name: "Hipoteca (tu 50%)", amount: 813, essential: true },
               { name: "Revolut", amount: 402, essential: true },
@@ -661,7 +675,6 @@ END:VEVENT`;
             ];
             const income = 3350 + 1000 + 850 + 600; // HP + lav + deuda + madre
             const incomeHP = 3950; // baja maternidad months
-            const now = new Date();
             const isBaja = now.getFullYear() === 2026 && (now.getMonth() === 4 || now.getMonth() === 5);
             const isJulAgo = now.getMonth() === 6 || now.getMonth() === 7;
             const actualIncome = isBaja ? (incomeHP + 1000 + 850 + 600) : (isJulAgo ? (3350 + 1000 + 600) : income);
