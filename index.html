@@ -1,1 +1,27 @@
-<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Plan Maestro Tracker</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0a0a1a}</style></head><body><div id="root"></div><script type="module" src="/src/main.jsx"></script></body></html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Plan Maestro</title>
+  <meta name="description" content="Holding Baix Llobregat — Plan financiero 15 años" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#0a0a1a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Plan Maestro" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0a0a1a;-webkit-tap-highlight-color:transparent}</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
